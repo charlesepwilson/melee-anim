@@ -165,7 +165,7 @@ def plot_heat_map(kb_angle, sign=False, print_m=False, animated=False):
         print('minimum = ', np.min(hm[hm.nonzero()]))
         print('maximum = ', np.max(hm))
     fig, ax = plt.subplots()
-    fig.set_size_inches(16, 16)
+    fig.set_size_inches(16, 9)
     visual = ax.imshow(hm, cmap=c, interpolation='none', vmin=v_min, vmax=1, origin='lower', animated=animated)
     fig.colorbar(visual, ax=ax)
     gate, = ax.plot(gate_xs, gate_ys)
@@ -187,7 +187,7 @@ def heatmap_animation(start_ang=0, end_ang=360):
         return visual, kb_line, gate
 
     ani = animation.FuncAnimation(fig, update_fig, end_ang, blit=True, interval=16.6667)
-    ani.save("heatmap.mp4", fps=60, bitrate=12000)
+    ani.save("heatmap.mp4", fps=60, bitrate=12000, dpi=120)
 
 
 def count_angles(only_gate=False):
