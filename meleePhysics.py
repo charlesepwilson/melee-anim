@@ -16,6 +16,9 @@ CURRENT_PERCENT = 100 - EXAMPLE_HITBOX['attack_dmg']
 
 
 def get_knockback(current_dmg, weight, attack_dmg, bkb, kbg, staled_dmg=None):
+    """Return the knockback strength for a given hitbox on a given character weight. Applies damage before
+    calculation
+    """
     if staled_dmg is None:
         staled_dmg = attack_dmg
     victim_dmg = current_dmg + staled_dmg
@@ -32,6 +35,11 @@ def get_knockback(current_dmg, weight, attack_dmg, bkb, kbg, staled_dmg=None):
 
 
 def get_path(kb_angle, kb_strength, fall_speed, gravity, di=(0, 0)):
+    """Takes in a knockback strength and angle, and character stats.
+    Returns a list of complex numbers representing the position of the character getting hit on each frame of hit stun.
+    The real part of tye number is the x position and the imaginary part is the y position.
+    A DI input can optionally be provided as a tuple (x, y), where x and y are integers between 0 and 255.
+    """
     angle_change = stick_and_di.get_di_angle_change(kb_angle, *di)
     kb_angle_di = kb_angle + angle_change
 
@@ -67,6 +75,7 @@ def get_path(kb_angle, kb_strength, fall_speed, gravity, di=(0, 0)):
 
 
 def get_path_from_hitbox_char(current_dmg, kb_angle, attack_dmg, bkb, kbg, weight=100, fall_speed=1.8, gravity=0.1):
+    """Calls get_knockback and get_path using dictionaries representing hit boxes and characters as arguments."""
     kb_strength = get_knockback(current_dmg, weight, attack_dmg, bkb, kbg)
     return get_path(kb_angle, kb_strength, fall_speed, gravity)
 
