@@ -1,12 +1,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from manim import *
-import meleePhysics
+import melee_physics
 import stick_and_di
 
 
 def main():
-    pass
+    print(90-128)
 
 
 if __name__ == '__main__':

@@ -2,32 +2,44 @@ import numpy as np
 import matplotlib.pyplot as plt
 import stick_and_di
 
-FOX = {'weight': 75,
-       'fall_speed': 2.8,
-       'gravity': 0.23
-       }
+EXAMPLE_STAGE = {'top': 200,
+                 'bottom': -108.8,
+                 'left': -224,
+                 'right': 224
+                 }
 
 EXAMPLE_HITBOX = {'kb_angle': 45,
                   'attack_dmg': 17,
                   'bkb': 70,
                   'kbg': 50
                   }
+
+EXAMPLE_CHARACTER = {'weight': 100,
+                     'fall_speed': 1.5,
+                     'gravity': 0.1
+                     }
+
+FOX = {'weight': 75,
+       'fall_speed': 2.8,
+       'gravity': 0.23
+       }
+
 CURRENT_PERCENT = 100 - EXAMPLE_HITBOX['attack_dmg']
 
 
-def get_knockback(current_dmg, weight, attack_dmg, bkb, kbg, staled_dmg=None):
+def get_knockback(dmg_before_hit, weight, attack_dmg, bkb, kbg, staled_dmg=None):
     """Return the knockback strength for a given hitbox on a given character weight. Applies damage before
     calculation
     """
     if staled_dmg is None:
         staled_dmg = attack_dmg
-    victim_dmg = current_dmg + staled_dmg
+    victim_dmg = dmg_before_hit + staled_dmg
     g = kbg / 100
     w = weight / 100
 
     kb = bkb + g * (
-                    (1.4 * (attack_dmg + 2) * (staled_dmg + np.floor(victim_dmg)) * (2.0 - (2 * w / (1 + w))) / 20) + 18
-                    )
+            (1.4 * (attack_dmg + 2) * (staled_dmg + np.floor(victim_dmg)) * (2.0 - (2 * w / (1 + w))) / 20) + 18
+    )
 
     if kb > 2500:
         kb = 2500
@@ -74,10 +86,15 @@ def get_path(kb_angle, kb_strength, fall_speed, gravity, di=(0, 0)):
     return pos_list
 
 
-def get_path_from_hitbox_char(current_dmg, kb_angle, attack_dmg, bkb, kbg, weight=100, fall_speed=1.8, gravity=0.1):
+def get_path_from_hitbox_char(
+        dmg_before_hit=50,
+        kb_angle=45, attack_dmg=10, bkb=50, kbg=50,
+        weight=100, fall_speed=1.8, gravity=0.1,
+        di=(0, 0)
+):
     """Calls get_knockback and get_path using dictionaries representing hit boxes and characters as arguments."""
-    kb_strength = get_knockback(current_dmg, weight, attack_dmg, bkb, kbg)
-    return get_path(kb_angle, kb_strength, fall_speed, gravity)
+    kb_strength = get_knockback(dmg_before_hit, weight, attack_dmg, bkb, kbg)
+    return get_path(kb_angle, kb_strength, fall_speed, gravity, di)
 
 
 def main():

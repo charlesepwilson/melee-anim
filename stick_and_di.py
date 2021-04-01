@@ -283,11 +283,11 @@ def angle_count_stuff():
 
 
 def main():
-    # plot_heat_map(45)
-    # plt.show()
+    plot_heat_map(45)
+    plt.show()
     # heatmap_animation()
     # plot_possible_inputs()
-    angle_count_stuff()
+    # angle_count_stuff()
 
 
 if __name__ == '__main__':
