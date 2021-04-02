@@ -119,13 +119,21 @@ class ControlStick(VGroup):
         dz_colour_x = BLUE
         dz_colour_y = PINK
 
-        self.gate = RegularPolygon(n=8, z_index=0)
-        # self.gate.scale(1.2)
-        self.circle = Circle(radius=circle_radius, color=WHITE, fill_opacity=1, stroke_opacity=0, z_index=0)
-        self.square = Square(square_edge, stroke_opacity=0, color=WHITE)
-        self.gcc = SVGMobject('GCController_Layout_Modified.svg').scale(5.2)
-        self.gccStickPos = self.gcc.get_center() - self.gcc.submobjects[20].get_center()
+        input_gate_diameter = 183  # max(stick_and_di.GATE_YS) - min(stick_and_di.GATE_YS)
+        input_gate_diameter_mm = 10.9  # stick_and_di.GATE_DIAMETER_MM - stick_and_di.STICK_STEM_DIAMETER_MM
+        mm_to_input = 16.8  # 183 / 10.9
+        physical_diameter_as_input = 361  # stick_and_di.GATE_DIAMETER_MM * mm_to_input
+        gcc_svg_init_scale = 4.6  # This scale will make the gate on the gcc svg have unit radius
+
+        self.square = Square(square_edge, stroke_opacity=0, color=WHITE, fill_opacity=1)
+        self.circle = Circle(radius=circle_radius, color=WHITE, fill_opacity=1, stroke_opacity=0)
+        self.gcc = SVGMobject(
+            r'C:\Users\charl\Documents\Python_Projects\manim\GCController_Layout_Modified.svg'
+        ).scale(gcc_svg_init_scale * physical_diameter_as_input / 2)
+        self.gcc_stick_pos = self.gcc.get_center() - self.gcc.submobjects[20].get_center()
+        self.gcc.shift(self.gcc_stick_pos)
         self.set_gcc_colours()
+        self.gate = RegularPolygon(n=8, color=YELLOW, stroke_opacity=1, stroke_width=100).scale(input_gate_diameter / 2)
 
         self.backdrops = VGroup(self.gate, self.circle, self.square, self.gcc)
         self.dead_zone_xp = DashedLine(dead_zone * RIGHT + 2 * UP, dead_zone * RIGHT + 2 * DOWN, color=DARK_GREY)
@@ -190,22 +198,24 @@ class ControlStick(VGroup):
         VGroup.align_points_with_larger(self, larger_mobject)
 
 
-class TestScene(ZoomedScene):
+class TestScene(MovingCameraScene):
     def __init__(self, **kwargs):
-        ZoomedScene.__init__(
-            self,
-            zoom_factor=0.3,
-            zoomed_display_height=1,
-            zoomed_display_width=6,
-            image_frame_stroke_width=20,
-            zoomed_camera_config={
-                "default_frame_stroke_width": 3,
-                },
-            **kwargs
-        )
+        MovingCameraScene.__init__(self, **kwargs)
 
     def construct(self):
+        frame_height = stick_and_di.INPUT_SIZE * 1.5
+        self.camera.frame.set(height=frame_height)
         control_stick = ControlStick()
-
-        self.add(control_stick)
+        self.add(control_stick.gcc)
+        self.camera.frame.set(
+            height=control_stick.gcc.height * 1.5).move_to(control_stick.gcc.get_center())
+        self.wait()
+        self.play(self.camera.frame.animate.move_to(ORIGIN).set(height=frame_height))
+        self.wait()
+        self.play(FadeIn(control_stick.square))
+        self.add(control_stick.circle)
+        self.wait()
+        self.play(ShowCreation(control_stick.gate))
+        self.wait()
+        self.play(control_stick.square.animate.set_fill(LIGHT_GREY))
         self.wait(2)

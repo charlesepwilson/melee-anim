@@ -10,6 +10,11 @@ MAX_MAG_SQUARE = 6400
 DEAD_ZONE = 23  # Out of 80, 23 is not included in dead zone
 MAX_DI = 18  # degrees
 
+GATE_XS = [233, 206, 125, 55, 32, 56, 131, 210, 233]
+GATE_YS = [129, 44, 22, 50, 125, 202, 227, 205, 129]
+GATE_DIAMETER_MM = 21.5
+STICK_STEM_DIAMETER_MM = 10.6
+
 
 def raw_to_melee(x, y):
     """Takes a stick input consisting of two integers x and y that are each between 0 and 255 inclusive.
@@ -208,8 +213,8 @@ def plot_heat_map(kb_angle, sign=False, animated=False):
     the line representing the octagonal stick gate)
      """
     xs, ys = get_kb_line_points(kb_angle)
-    gate_xs = [233, 206, 125, 55, 32, 56, 131, 210, 233]
-    gate_ys = [129, 44, 22, 50, 125, 202, 227, 205, 129]
+    gate_xs = GATE_XS
+    gate_ys = GATE_YS
 
     if sign:
         c = 'seismic'
