@@ -135,6 +135,9 @@ class ControlStick(VGroup):
         self.set_gcc_colours()
         self.gate = RegularPolygon(n=8, color=YELLOW, stroke_opacity=1, stroke_width=100).scale(input_gate_diameter / 2)
 
+        gate_points = [np.array([x - 128, y - 128, 0]) for x, y in zip(stick_and_di.GATE_XS, stick_and_di.GATE_YS)]
+        self.gate = ArcPolygon(*gate_points, radius=-300, color=YELLOW, stroke_opacity=1, stroke_width=100)
+
         self.backdrops = VGroup(self.gate, self.circle, self.square, self.gcc)
         self.dead_zone_xp = DashedLine(dead_zone * RIGHT + 2 * UP, dead_zone * RIGHT + 2 * DOWN, color=DARK_GREY)
         self.dead_zone_xn = DashedLine(dead_zone * LEFT + 2 * UP, dead_zone * LEFT + 2 * DOWN, color=DARK_GREY)
@@ -203,6 +206,9 @@ class TestScene(MovingCameraScene):
         MovingCameraScene.__init__(self, **kwargs)
 
     def construct(self):
+        text_scaling = 50
+        x_colour = RED
+        y_colour = PURPLE
         frame_height = stick_and_di.INPUT_SIZE * 1.5
         self.camera.frame.set(height=frame_height)
         control_stick = ControlStick()
@@ -210,7 +216,38 @@ class TestScene(MovingCameraScene):
         self.camera.frame.set(
             height=control_stick.gcc.height * 1.5).move_to(control_stick.gcc.get_center())
         self.wait()
+        background = Rectangle(height=frame_height, width=frame_height * 2, fill_opacity=1, fill_color=BLACK)
         self.play(self.camera.frame.animate.move_to(ORIGIN).set(height=frame_height))
+        self.wait()
+        self.play(FadeIn(background))
+
+        raw_x = 30  # np.random.randint(255)  # Varies 0-255
+        raw_x_tracker = ValueTracker(raw_x)
+
+        def int2bin(n):
+            return "{:b}".format(int(n))
+
+        bin_x = int2bin(raw_x)
+        raw_y = 0
+        raw_y_tracker = ValueTracker(raw_y)
+        # TODO Sort out binary display. Should be right aligned and monospaced, possibly show all leading 0s
+        bin_x_display = Integer(int(bin_x), color=x_colour).scale(text_scaling)
+        bin_x_display.add_updater(lambda m: m.set_value(int(int2bin(raw_x_tracker.get_value()))))
+
+        equals_display = MathTex('   =   ', color=x_colour).scale(text_scaling).next_to(
+            bin_x_display[-1])
+        raw_x_display = Integer(raw_x, color=x_colour).scale(text_scaling).next_to(equals_display)
+        raw_x_display.add_updater(lambda m: m.set_value(raw_x_tracker.get_value()))
+
+        raw_y_display = Integer(raw_y, color=y_colour).scale(text_scaling)
+        raw_y_display.add_updater(lambda m: m.set_value(raw_y_tracker.get_value()))
+
+        for i in range(8):
+            self.play(Write(bin_x_display[i]))
+        self.play(Write(raw_x_display), Write(equals_display))
+
+        self.play(raw_x_tracker.animate.set_value(200))
+
         self.wait()
         self.play(FadeIn(control_stick.square))
         self.add(control_stick.circle)
