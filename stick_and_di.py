@@ -14,6 +14,10 @@ GATE_XS = [233, 206, 125, 55, 32, 56, 131, 210, 233]
 GATE_YS = [129, 44, 22, 50, 125, 202, 227, 205, 129]
 GATE_DIAMETER_MM = 21.5
 STICK_STEM_DIAMETER_MM = 10.6
+input_gate_diameter = 205  # max(GATE_YS) - min(GATE_YS)
+input_gate_diameter_mm = 10.9  # GATE_DIAMETER_MM - STICK_STEM_DIAMETER_MM
+mm_to_input = 18.8  # 205 / 10.9
+physical_diameter_as_input = 404  # GATE_DIAMETER_MM * mm_to_input
 
 
 def raw_to_melee(x, y):

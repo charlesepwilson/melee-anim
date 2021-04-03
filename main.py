@@ -6,7 +6,8 @@ import stick_and_di
 
 
 def main():
-    print(90-128)
+    print(max(stick_and_di.GATE_YS) - min(stick_and_di.GATE_YS))
+    print(max(stick_and_di.GATE_XS) - min(stick_and_di.GATE_XS))
 
 
 if __name__ == '__main__':
