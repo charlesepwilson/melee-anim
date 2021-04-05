@@ -118,7 +118,7 @@ class ControlStick(VGroup):
         flared_dz = 38  # Maximum coordinate inside dead zone at edge of square
         dz_colour_x = BLUE
         dz_colour_y = PINK
-        gate_colour = YELLOW
+        gate_colour = DARK_GREY
         line_width = 100
 
         input_gate_diameter = stick_and_di.input_gate_diameter  # max(stick_and_di.GATE_YS) - min(stick_and_di.GATE_YS)
@@ -134,7 +134,7 @@ class ControlStick(VGroup):
         self.gcc_stick_pos = self.gcc.get_center() - self.gcc.submobjects[20].get_center()
         self.gcc.shift(self.gcc_stick_pos)
         self.set_gcc_colours()
-        nice_gate_points = compass_directions(8)*input_gate_diameter / 2
+        nice_gate_points = compass_directions(8) * input_gate_diameter / 2
         self.nice_gate = ArcPolygon(*nice_gate_points,
                                     radius=gate_arc_radius,
                                     color=gate_colour,
@@ -217,12 +217,13 @@ class InputScene(MovingCameraScene):
         MovingCameraScene.__init__(self, **kwargs)
 
     def construct(self):
+        print(np.rad2deg(TAU * (0.25 + 1 * (0.25 - (128 / 510)))))
         text_scaling = 50
         text_buff = 10
         x_colour = RED
         y_colour = PURPLE
         raw_colour = GREY
-        melee_colour = PURPLE
+        melee_colour = YELLOW
 
         frame_height = stick_and_di.INPUT_SIZE * 1.5
         self.camera.frame.set(height=frame_height)
@@ -240,7 +241,7 @@ class InputScene(MovingCameraScene):
         raw_x_tracker = ValueTracker(raw_x)
 
         def int2bin(n):
-            return format(int(n), "0=08b")
+            return format(int(n), "0=08b") + "="
 
         sideways_stick_points = [np.array([-5.3, 0, 0]),
                                  np.array([-5.3, 3.6, 0]),
@@ -268,12 +269,13 @@ class InputScene(MovingCameraScene):
         rotate_about = DOWN * 100
         s_stick_radius = mag(sideways_stick.get_center_of_mass() - rotate_about)
 
+        angle_squeeze = 1  # np.deg2rad(180) / PI
+
         def get_stick_angle_change():
-            target_angle = TAU / 2 * (1 - raw_x_tracker.get_value() / 255)
+            target_angle = TAU * (0.25 + angle_squeeze * (0.25 - (raw_x_tracker.get_value() / 510)))
             current_angle = np.arccos(
                 (sideways_stick.get_center_of_mass() - rotate_about)[0]
                 / s_stick_radius)
-            #  print(int(np.rad2deg(current_angle)), int(np.rad2deg(target_angle)))
             return target_angle - current_angle
 
         sideways_stick.add_updater(lambda s: s.rotate(get_stick_angle_change(), about_point=rotate_about))
@@ -283,32 +285,26 @@ class InputScene(MovingCameraScene):
             return Text(
                 int2bin(raw_x_tracker.get_value()),
                 font=MONOSPACE_FONT,
-                color=x_colour).scale(text_scaling).shift(DOWN * 100)
+                color=x_colour).scale(text_scaling).shift(DOWN * 100 + LEFT * 30)
 
         def become_binary_display(mobject):
             mobject.become(get_binary_display())
 
         bin_x_display = get_binary_display()
-        #  bin_x_display.add_updater(become_binary_display)
+        bin_x_display.add_updater(become_binary_display)
 
-        equals_display = MathTex('=', color=x_colour).scale(text_scaling).next_to(
-            bin_x_display, buff=text_buff)
-        raw_x_display = Integer(raw_x, color=x_colour).scale(text_scaling).next_to(equals_display, buff=text_buff)
+        def maintain_size(mobject):
+            mobject.scale(1)  # text_scaling / mobject.height)
+
+        raw_x_display = Integer(raw_x, color=x_colour).scale(text_scaling).next_to(bin_x_display, buff=text_buff)
         raw_x_display.add_updater(lambda m: m.set_value(raw_x_tracker.get_value()))
-        x_label = MathTex('x', color=x_colour).scale(text_scaling).next_to(
-            equals_display, LEFT, buff=text_buff)
+        raw_x_display.add_updater(maintain_size)
+        raw_x_label = MathTex('x=', color=x_colour).scale(text_scaling).next_to(
+            raw_x_display, LEFT, buff=text_buff)
 
-        raw_y = 128
+        x_stuff = VGroup(raw_x_display, bin_x_display)
 
-        raw_y_display = Variable(
-            raw_y, label='y', var_type=Integer).scale(text_scaling)
-        raw_y_display.set_color(y_colour)
-        raw_y_tracker = raw_y_display.tracker
-
-        x_stuff = VGroup(raw_x_display, equals_display, bin_x_display)
-
-        self.play(Write(bin_x_display))
-        self.play(Write(raw_x_display), Write(equals_display))
+        self.play(Write(bin_x_display), Write(raw_x_display))
 
         tilt = 60
         self.play(raw_x_tracker.animate.set_value(128 + tilt), rate_func=there_and_back, run_time=2)
@@ -316,10 +312,21 @@ class InputScene(MovingCameraScene):
         self.play(Uncreate(sideways_stick))
 
         bin_x_display.remove_updater(become_binary_display)
-        self.play(Transform(bin_x_display, x_label))
 
-        self.play(x_stuff.animate.move_to(np.array([200, 100, 0])))
-        raw_y_display.next_to(x_stuff, DOWN, text_buff)
+        self.play(Transform(bin_x_display, raw_x_label))
+
+        self.play(x_stuff.animate.move_to(np.array([220, 100, 0])))
+
+        raw_y = 128
+        raw_y_tracker = ValueTracker(raw_y)
+        raw_y_label = MathTex('y=',
+                              color=y_colour
+                              ).scale(text_scaling
+                                      ).next_to(bin_x_display, DOWN, buff=text_buff).align_to(bin_x_display, LEFT)
+        raw_y_display = Integer(raw_y, color=y_colour).scale(text_scaling).next_to(raw_y_label, RIGHT, buff=text_buff)
+        raw_y_display.add_updater(lambda m: m.set_value(raw_y_tracker.get_value()))
+        raw_y_display.add_updater(maintain_size)
+        y_stuff = VGroup(raw_y_label, raw_y_display)
 
         raw_input_dot = Dot(radius=3, color=DARK_GREY, fill_opacity=1)
         raw_input_dot.add_updater(
@@ -328,7 +335,7 @@ class InputScene(MovingCameraScene):
                 raw_y_tracker.get_value() - 128,
                 0])))
 
-        self.play(FadeIn(control_stick.square), FadeInFrom(raw_y_display, UP))
+        self.play(FadeIn(control_stick.square), FadeInFrom(raw_y_display, UP), FadeInFrom(raw_y_label, UP))
         self.play(FadeIn(control_stick.circle),
                   ShowCreation(raw_input_dot))
 
@@ -342,7 +349,10 @@ class InputScene(MovingCameraScene):
         for _ in range(3):
             animate_xy(random=True)
         animate_xy()
-
+        coordinates_bg_rect = SurroundingRectangle(VGroup(raw_x_display, raw_y_display, raw_y_label),
+                                                   fill_color=BLACK, fill_opacity=0.6, buff=text_buff)
+        self.add(coordinates_bg_rect)
+        self.bring_to_front(raw_x_display, raw_y_display, bin_x_display, raw_y_label)
         self.play(FadeOut(background))
         self.wait()
         self.play(ShowCreation(control_stick.gate))
@@ -351,9 +361,14 @@ class InputScene(MovingCameraScene):
         self.wait()
         self.play(control_stick.square.animate.set_fill(LIGHT_GREY))
         self.wait()
-        raw_label = Tex('Raw Input', color=raw_colour).scale(text_scaling).next_to(raw_x_display, UP, buff=text_buff)
+        # TODO Add blocky circle, fix wobbly numbers
+        raw_label = Tex('Raw Input',
+                        color=raw_colour
+                        ).scale(text_scaling).next_to(bin_x_display, UP,buff=text_buff)
+        raw_label.move_to(raw_label.get_center()[1] * UP + y_stuff.get_center()[0] * RIGHT)
+        label_gap = 90
         melee_label = Tex(r'Processed\\Input',
-                          color=melee_colour).scale(text_scaling).next_to(raw_x_display, DOWN, buff=80)
+                          color=melee_colour).scale(text_scaling).next_to(raw_label, DOWN, buff=label_gap)
 
         def get_melee_input():
             m_x, m_y = stick_and_di.raw_to_melee(raw_x_tracker.get_value(), raw_y_tracker.get_value())
@@ -362,17 +377,21 @@ class InputScene(MovingCameraScene):
         melee_input_dot = Dot(radius=3, color=melee_colour, fill_opacity=0)
         melee_input_dot.add_updater(lambda m: m.move_to(get_melee_input()))
 
-        melee_input_display_x = Integer(color=x_colour).scale(text_scaling).next_to(melee_label, DOWN, buff=text_buff)
         melee_label_x = MathTex('x =',
-                                color=x_colour).scale(text_scaling).next_to(melee_input_display_x, LEFT, text_buff)
-
-        melee_input_display_y = Integer(color=y_colour
-                                        ).scale(text_scaling).next_to(melee_input_display_x, DOWN, buff=text_buff)
+                                color=x_colour
+                                ).scale(text_scaling
+                                        ).next_to(melee_label, DOWN, buff=text_buff).align_to(raw_y_label, LEFT)
+        melee_input_display_x = Integer(color=x_colour, include_sign=True
+                                        ).scale(text_scaling
+                                                ).next_to(melee_label_x, RIGHT, buff=text_buff)
+        melee_input_display_x.add_updater(maintain_size)
         melee_label_y = MathTex('y =',
-                                color=y_colour).scale(text_scaling).next_to(melee_input_display_y, LEFT, text_buff)
-
-        melee_input_display_x.add_updater(lambda m: m.set_value(melee_input_dot.get_center()[0]))
-        melee_input_display_y.add_updater(lambda m: m.set_value(melee_input_dot.get_center()[1]))
+                                color=y_colour).scale(text_scaling).next_to(melee_label_x, DOWN, text_buff)
+        melee_input_display_y = Integer(color=y_colour, include_sign=True
+                                        ).scale(text_scaling).next_to(melee_label_y, RIGHT, buff=text_buff)
+        melee_input_display_y.add_updater(maintain_size)
+        melee_input_display_x.add_updater(mxu := lambda m: m.set_value(melee_input_dot.get_center()[0]))
+        melee_input_display_y.add_updater(myu := lambda m: m.set_value(melee_input_dot.get_center()[1]))
 
         self.play(Write(VGroup(raw_label, melee_label,
                                melee_label_x, melee_input_display_x,
@@ -385,18 +404,48 @@ class InputScene(MovingCameraScene):
         self.wait(2)
         raw_input_line = Line(start=ORIGIN, end=raw_input_dot.get_center(),
                               color=DARK_GREY, stroke_width=100, stroke_opacity=1)
-        raw_input_line.add_updater(lambda m: m.put_start_and_end_on(ORIGIN, 0.01*UP + raw_input_dot.get_center()))
+        raw_input_line.add_updater(lambda m: m.put_start_and_end_on(ORIGIN, 0.01 * UP + raw_input_dot.get_center()))
 
         animate_xy(200, 150)
         self.play(ShowCreation(raw_input_line))
-        self.play(melee_input_dot.animate.set(fill_opacity=1))
+        self.bring_to_front(melee_input_dot)
+        self.play(FadeIn(melee_input_dot))
         melee_input_dot.set_fill(color=melee_colour, opacity=1)
         self.wait()
         animate_xy(244, 15)
+        self.play(ApplyWave(raw_input_line, amplitude=5))
         self.play(CircleIndicate(melee_input_dot,
                                  rate_func=there_and_back_with_pause,
                                  circle_config={'color': PINK, 'stroke_width': 100}),
                   run_time=3)
         self.wait(3)
+
+        divide80_display = MathTex(r'\divisionsymbol 80'
+                                   ).scale(text_scaling).next_to(melee_input_display_y, DOWN, buff=text_buff)
+        divide80_display_copy = divide80_display.copy()
+        unit_melee_display_x = DecimalNumber(0, color=x_colour, num_decimal_places=4, include_sign=True
+                                             ).scale(text_scaling).next_to(melee_label_x, buff=text_buff)
+        unit_melee_display_y = DecimalNumber(0, color=y_colour, num_decimal_places=4, include_sign=True
+                                             ).scale(text_scaling).next_to(melee_label_y, buff=text_buff)
+        unit_melee_display_x.add_updater(lambda m: m.set_value(melee_input_dot.get_center()[0] / 80))
+        unit_melee_display_y.add_updater(lambda m: m.set_value(melee_input_dot.get_center()[1] / 80))
+        unit_melee_display_x.add_updater(maintain_size)
+        unit_melee_display_y.add_updater(maintain_size)
+        dummy_transform_x = Dot().move_to(melee_input_display_x)
+        dummy_transform_y = Dot().move_to(melee_input_display_y)
+
+        animate_xy(5, 27)
+        melee_input_display_x.remove_updater(mxu)
+        melee_input_display_y.remove_updater(myu)
+        self.play(Write(divide80_display), Write(divide80_display_copy))
+        self.play(Transform(divide80_display[:], dummy_transform_x),
+                  Transform(divide80_display_copy[:], dummy_transform_y),
+                  FadeOut(melee_input_display_x),
+                  FadeOut(melee_input_display_y),
+                  Write(unit_melee_display_x),
+                  Write(unit_melee_display_y)
+                  )
+        animate_xy(random=True)
+        animate_xy(random=True)
         animate_xy()
         self.wait(2)
