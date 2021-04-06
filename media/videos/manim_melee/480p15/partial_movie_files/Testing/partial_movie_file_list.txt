@@ -1,0 +1,2 @@
+# This file is used internally by FFMPEG.
+file 'file:C:/Users/charl/PycharmProjects/stickInput.py/media/videos/manim_melee/480p15/partial_movie_files/Testing/3163782288_1837148253_328158581.mp4'

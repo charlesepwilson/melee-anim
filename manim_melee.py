@@ -128,6 +128,13 @@ class ControlStick(VGroup):
 
         self.square = Square(square_edge, stroke_opacity=0, color=WHITE, fill_opacity=1)
         self.circle = Circle(radius=circle_radius, color=WHITE, fill_opacity=1, stroke_opacity=0)
+        blocky_circle_data = stick_and_di.possible_inputs()
+        data_color = np.ones((square_edge, square_edge, 4))
+        for i in range(square_edge):
+            for j in range(square_edge):
+                data_color[i, j, 3] = blocky_circle_data[i, j]
+        data_color = np.uint8(data_color * 255)
+        self.blocky_circle = ImageMobject(data_color, height=square_edge)
         self.gcc = SVGMobject(
             r'C:\Users\charl\Documents\Python_Projects\manim\GCController_Layout_Modified.svg'
         ).scale(gcc_svg_init_scale * physical_diameter_as_input / 2)
@@ -293,12 +300,8 @@ class InputScene(MovingCameraScene):
         bin_x_display = get_binary_display()
         bin_x_display.add_updater(become_binary_display)
 
-        def maintain_size(mobject):
-            mobject.scale(1)  # text_scaling / mobject.height)
-
         raw_x_display = Integer(raw_x, color=x_colour).scale(text_scaling).next_to(bin_x_display, buff=text_buff)
         raw_x_display.add_updater(lambda m: m.set_value(raw_x_tracker.get_value()))
-        raw_x_display.add_updater(maintain_size)
         raw_x_label = MathTex('x=', color=x_colour).scale(text_scaling).next_to(
             raw_x_display, LEFT, buff=text_buff)
 
@@ -325,7 +328,6 @@ class InputScene(MovingCameraScene):
                                       ).next_to(bin_x_display, DOWN, buff=text_buff).align_to(bin_x_display, LEFT)
         raw_y_display = Integer(raw_y, color=y_colour).scale(text_scaling).next_to(raw_y_label, RIGHT, buff=text_buff)
         raw_y_display.add_updater(lambda m: m.set_value(raw_y_tracker.get_value()))
-        raw_y_display.add_updater(maintain_size)
         y_stuff = VGroup(raw_y_label, raw_y_display)
 
         raw_input_dot = Dot(radius=3, color=DARK_GREY, fill_opacity=1)
@@ -336,8 +338,9 @@ class InputScene(MovingCameraScene):
                 0])))
 
         self.play(FadeIn(control_stick.square), FadeInFrom(raw_y_display, UP), FadeInFrom(raw_y_label, UP))
-        self.play(FadeIn(control_stick.circle),
-                  ShowCreation(raw_input_dot))
+        control_stick.blocky_circle.set(height=stick_and_di.INPUT_SIZE)
+        self.add(control_stick.blocky_circle)
+        self.play(ShowCreation(raw_input_dot))
 
         def animate_xy(x=128, y=128, random=False):
             target_x = x if not random else np.random.randint(255)
@@ -360,8 +363,11 @@ class InputScene(MovingCameraScene):
         self.play(FadeOut(control_stick.gcc))
         self.wait()
         self.play(control_stick.square.animate.set_fill(LIGHT_GREY))
+        self.wait(3)
+        self.play(FadeIn(control_stick.circle), control_stick.blocky_circle.animate.set_opacity(0))
+        self.remove(control_stick.blocky_circle)
+        self.bring_to_front(raw_input_dot)
         self.wait()
-        # TODO Add blocky circle, fix wobbly numbers
         raw_label = Tex('Raw Input',
                         color=raw_colour
                         ).scale(text_scaling).next_to(bin_x_display, UP, buff=text_buff)
@@ -384,12 +390,10 @@ class InputScene(MovingCameraScene):
         melee_input_display_x = Integer(color=x_colour, include_sign=True
                                         ).scale(text_scaling
                                                 ).next_to(melee_label_x, RIGHT, buff=text_buff)
-        melee_input_display_x.add_updater(maintain_size)
         melee_label_y = MathTex('y =',
                                 color=y_colour).scale(text_scaling).next_to(melee_label_x, DOWN, text_buff)
         melee_input_display_y = Integer(color=y_colour, include_sign=True
                                         ).scale(text_scaling).next_to(melee_label_y, RIGHT, buff=text_buff)
-        melee_input_display_y.add_updater(maintain_size)
         melee_input_display_x.add_updater(mxu := lambda m: m.set_value(melee_input_dot.get_center()[0]))
         melee_input_display_y.add_updater(myu := lambda m: m.set_value(melee_input_dot.get_center()[1]))
 
@@ -429,8 +433,6 @@ class InputScene(MovingCameraScene):
                                              ).scale(text_scaling).next_to(melee_label_y, buff=text_buff)
         unit_melee_display_x.add_updater(lambda m: m.set_value(melee_input_dot.get_center()[0] / 80))
         unit_melee_display_y.add_updater(lambda m: m.set_value(melee_input_dot.get_center()[1] / 80))
-        unit_melee_display_x.add_updater(maintain_size)
-        unit_melee_display_y.add_updater(maintain_size)
         dummy_transform_x = Dot().move_to(melee_input_display_x)
         dummy_transform_y = Dot().move_to(melee_input_display_y)
 
@@ -449,3 +451,15 @@ class InputScene(MovingCameraScene):
         animate_xy(random=True)
         animate_xy()
         self.wait(2)
+
+
+class Testing(Scene):
+    def construct(self):
+        bg = Rectangle(color=GREY)
+        blocky_circle_data = np.uint8(stick_and_di.possible_inputs() * 255)
+        blocky_circle = ImageMobject(blocky_circle_data)
+        print(blocky_circle.height)
+        self.add(bg)
+        self.add(blocky_circle)
+        self.add(SurroundingRectangle(blocky_circle))
+        self.wait(3)
