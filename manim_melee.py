@@ -115,11 +115,12 @@ class ControlStick(VGroup):
         dead_zone_outside = stick_and_di.DEAD_ZONE  # First value outside dead zone
         dead_zone = dead_zone_outside - 1  # Last value inside dead zone
         circle_radius = stick_and_di.MAX_MAGNITUDE
-        circle_dz = np.sqrt(stick_and_di.MAX_MAG_SQUARE - dead_zone**2)
+        circle_dz = np.sqrt(stick_and_di.MAX_MAG_SQUARE - dead_zone ** 2)
         # ^ ~76 Maximum other coordinate inside dead zone and circle
         flared_dz = 38  # Maximum coordinate inside dead zone at edge of square
         dz_colour_x = BLUE
         dz_colour_y = PINK
+        dz_opacity = 0.65
         dz_line_colour = DARK_GREY
         gate_colour = DARK_GREY
         line_width = 100
@@ -165,16 +166,16 @@ class ControlStick(VGroup):
                                        color=dz_line_colour, stroke_width=line_width)
         self.dead_zone_lines = VGroup(self.dead_zone_xp, self.dead_zone_xn, self.dead_zone_yp, self.dead_zone_yn)
 
-        self.dead_zone_x = ArcPolygon(
-            dead_zone * LEFT + circle_dz * UP,
-            dead_zone * LEFT + circle_dz * DOWN,
-            dead_zone * RIGHT + circle_dz * DOWN,
-            dead_zone * RIGHT + circle_dz * UP,
-            arc_config=[{'angle': 0}, {'radius': circle_radius}, {'angle': 0}, {'radius': circle_radius}]
-        )
-        self.dead_zone_x.set_color(dz_colour_x)
-        self.dead_zone_x.set_opacity(0.6)
-        self.dead_zone_x.set_stroke(opacity=0)
+        points = {'top left': dead_zone * LEFT + circle_dz * UP,
+                  'bottom left': dead_zone * LEFT + circle_dz * DOWN,
+                  'bottom right': dead_zone * RIGHT + circle_dz * DOWN,
+                  'top right': dead_zone * RIGHT + circle_dz * UP}
+        arc1 = ArcBetweenPoints(points['top left'], points['bottom left'], angle=0)
+        arc2 = ArcBetweenPoints(points['bottom left'], points['bottom right'], radius=circle_radius)
+        arc3 = ArcBetweenPoints(points['bottom right'], points['top right'], angle=0)
+        arc4 = ArcBetweenPoints(points['top right'], points['top left'], radius=circle_radius)
+        self.dead_zone_x = ArcPolygonFromArcs(arc1, arc2, arc3, arc4,
+                                              fill_opacity=dz_opacity, fill_color=dz_colour_x)
 
         self.flared_dz_x = Polygon(dead_zone * LEFT + circle_dz * UP,
                                    dead_zone * LEFT + circle_dz * DOWN,
@@ -184,7 +185,7 @@ class ControlStick(VGroup):
                                    dead_zone * RIGHT + circle_dz * UP,
                                    flared_dz * RIGHT + input_origin * UP,
                                    flared_dz * LEFT + input_origin * UP,
-                                   fill_color=dz_colour_x, fill_opacity=0.65, stroke_opacity=0
+                                   fill_color=dz_colour_x, fill_opacity=dz_opacity, stroke_opacity=0
                                    )
         self.flared_dz_y = self.flared_dz_x.copy().rotate(TAU / 4)
         self.flared_dz_y.set_color(dz_colour_y)
@@ -601,6 +602,9 @@ class DeadZoneScene(MovingCameraScene):
         flare_explain_arrow2 = Arrow(start=melee_input_dot.get_center(),
                                      end=dz_input_dot.get_center(),
                                      stroke_width=line_width, stroke_color=arrow_colour)
+        flare_explain_arrow1.tip.scale(20)
+        flare_explain_arrow2.tip.scale(20)
+
         self.play(ShowCreation(flare_explain_arrow1))
         self.play(ShowCreation(flare_explain_arrow2))
         self.play(Transform(control_stick.dead_zone_x, control_stick.flared_dz_x),
@@ -612,17 +616,28 @@ class DeadZoneScene(MovingCameraScene):
 
 class Testing(Scene):
     def construct(self):
-        a = [0, 0, 0]
-        b = [2, 0, 0]
-        c = [0, 2, 0]
-        op = 0.5
-        ap1 = ArcPolygon(a, b, c, radius=2, fill_opacity=0.5)
-        ap2 = ArcPolygon(a, b, c, angle=45 * DEGREES, fill_opacity=0.5)
-        ap3 = ArcPolygon(a, b, c, fill_opacity=0.5, arc_config={'radius': 1.7, 'color': RED})
-        ap4 = ArcPolygon(a, b, c, fill_opacity=0.5, color=RED,
-                         arc_config=[{'radius': 1.7, 'color': RED},
-                                     {'angle': 20 * DEGREES, 'color': BLUE},
-                                     {'radius': 1}])
-        ap_group = VGroup(ap1, ap2, ap3, ap4).arrange()
-        self.play(*[ShowCreation(ap) for ap in [ap1, ap2, ap3, ap4]])
+        bg = Square(6, fill_color=WHITE, fill_opacity=1)
+        dead_zone = 0.275
+        circle_dz = 0.8
+        circle_radius = 1
+        points = {'top left': dead_zone * LEFT + circle_dz * UP,
+                  'bottom left': dead_zone * LEFT + circle_dz * DOWN,
+                  'bottom right': dead_zone * RIGHT + circle_dz * DOWN,
+                  'top right': dead_zone * RIGHT + circle_dz * UP}
+        dead_zone_x = ArcPolygon(
+            points['top left'],
+            points['bottom left'],
+            points['bottom right'],
+            points['top right'],
+            arc_config=[{'angle': 0},
+                        {'radius': circle_radius},
+                        {'angle': 0},
+                        {'radius': circle_radius}]
+        ).scale(2)
+
+        dead_zone_x.set_color(BLUE)
+        dead_zone_x.set_opacity(0.65)
+        dead_zone_x.set_stroke(opacity=0)
+        self.add(bg, dead_zone_x)
         self.wait()
+
