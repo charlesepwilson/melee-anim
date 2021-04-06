@@ -3,6 +3,7 @@ import stick_and_di
 import melee_physics
 
 MONOSPACE_FONT = 'monospace'
+INFO_LOCATION = np.array([220, 100, 0])
 
 
 class KnockbackTrajectory(CubicBezier):
@@ -114,10 +115,12 @@ class ControlStick(VGroup):
         dead_zone_outside = stick_and_di.DEAD_ZONE  # First value outside dead zone
         dead_zone = dead_zone_outside - 1  # Last value inside dead zone
         circle_radius = stick_and_di.MAX_MAGNITUDE
-        circle_dz = 76  # Maximum other coordinate inside dead zone and circle
+        circle_dz = np.sqrt(stick_and_di.MAX_MAG_SQUARE - dead_zone**2)
+        # ^ ~76 Maximum other coordinate inside dead zone and circle
         flared_dz = 38  # Maximum coordinate inside dead zone at edge of square
         dz_colour_x = BLUE
         dz_colour_y = PINK
+        dz_line_colour = DARK_GREY
         gate_colour = DARK_GREY
         line_width = 100
 
@@ -152,10 +155,14 @@ class ControlStick(VGroup):
                                stroke_width=line_width)
 
         self.backdrops = VGroup(self.gate, self.circle, self.square, self.gcc)
-        self.dead_zone_xp = DashedLine(dead_zone * RIGHT + 2 * UP, dead_zone * RIGHT + 2 * DOWN, color=DARK_GREY)
-        self.dead_zone_xn = DashedLine(dead_zone * LEFT + 2 * UP, dead_zone * LEFT + 2 * DOWN, color=DARK_GREY)
-        self.dead_zone_yp = DashedLine(dead_zone * UP + 2 * LEFT, dead_zone * UP + 2 * RIGHT, color=DARK_GREY)
-        self.dead_zone_yn = DashedLine(dead_zone * DOWN + 2 * LEFT, dead_zone * DOWN + 2 * RIGHT, color=DARK_GREY)
+        self.dead_zone_xp = DashedLine(dead_zone * RIGHT + input_origin * UP, dead_zone * RIGHT + input_origin * DOWN,
+                                       color=dz_line_colour, stroke_width=line_width)
+        self.dead_zone_xn = DashedLine(dead_zone * LEFT + input_origin * UP, dead_zone * LEFT + input_origin * DOWN,
+                                       color=dz_line_colour, stroke_width=line_width)
+        self.dead_zone_yp = DashedLine(dead_zone * UP + input_origin * LEFT, dead_zone * UP + input_origin * RIGHT,
+                                       color=dz_line_colour, stroke_width=line_width)
+        self.dead_zone_yn = DashedLine(dead_zone * DOWN + input_origin * LEFT, dead_zone * DOWN + input_origin * RIGHT,
+                                       color=dz_line_colour, stroke_width=line_width)
         self.dead_zone_lines = VGroup(self.dead_zone_xp, self.dead_zone_xn, self.dead_zone_yp, self.dead_zone_yn)
 
         self.dead_zone_x = ArcPolygon(
@@ -163,7 +170,7 @@ class ControlStick(VGroup):
             dead_zone * LEFT + circle_dz * DOWN,
             dead_zone * RIGHT + circle_dz * DOWN,
             dead_zone * RIGHT + circle_dz * UP,
-            arc_config=[{'angle': 0}, {'radius': circle_radius}, {'angle': 0}, {'radius': circle_radius}], z_index=1
+            arc_config=[{'angle': 0}, {'radius': circle_radius}, {'angle': 0}, {'radius': circle_radius}]
         )
         self.dead_zone_x.set_color(dz_colour_x)
         self.dead_zone_x.set_opacity(0.6)
@@ -177,7 +184,7 @@ class ControlStick(VGroup):
                                    dead_zone * RIGHT + circle_dz * UP,
                                    flared_dz * RIGHT + input_origin * UP,
                                    flared_dz * LEFT + input_origin * UP,
-                                   fill_color=dz_colour_x, fill_opacity=0.65, stroke_opacity=0, z_index=1
+                                   fill_color=dz_colour_x, fill_opacity=0.65, stroke_opacity=0
                                    )
         self.flared_dz_y = self.flared_dz_x.copy().rotate(TAU / 4)
         self.flared_dz_y.set_color(dz_colour_y)
@@ -221,6 +228,7 @@ class InputScene(MovingCameraScene):
     def construct(self):
         text_scaling = 50
         text_buff = 10
+        line_width = 100
         x_colour = RED
         y_colour = PURPLE
         raw_colour = GREY
@@ -270,7 +278,7 @@ class InputScene(MovingCameraScene):
         rotate_about = DOWN * 100
         s_stick_radius = mag(sideways_stick.get_center_of_mass() - rotate_about)
 
-        angle_squeeze = 66/180
+        angle_squeeze = 66 / 180
 
         def get_stick_angle_change():
             target_angle = TAU * (0.25 + angle_squeeze * (0.25 - (raw_x_tracker.get_value() / 510)))
@@ -312,7 +320,7 @@ class InputScene(MovingCameraScene):
 
         self.play(Transform(bin_x_display, raw_x_label))
 
-        self.play(x_stuff.animate.move_to(np.array([220, 100, 0])))
+        self.play(x_stuff.animate.move_to(INFO_LOCATION))
 
         raw_y = 128
         raw_y_tracker = ValueTracker(raw_y)
@@ -403,7 +411,7 @@ class InputScene(MovingCameraScene):
 
         self.wait(2)
         raw_input_line = Line(start=ORIGIN, end=raw_input_dot.get_center(),
-                              color=DARK_GREY, stroke_width=100, stroke_opacity=1)
+                              color=DARK_GREY, stroke_width=line_width, stroke_opacity=1)
         raw_input_line.add_updater(lambda m: m.put_start_and_end_on(ORIGIN, 0.01 * UP + raw_input_dot.get_center()))
 
         animate_xy(200, 150)
@@ -413,10 +421,10 @@ class InputScene(MovingCameraScene):
         melee_input_dot.set_fill(color=melee_colour, opacity=1)
         self.wait()
         animate_xy(244, 15)
-        self.play(ApplyWave(raw_input_line, amplitude=5))
+        self.play(ShowPassingFlash(raw_input_line.copy().set_color(melee_colour)))
         self.play(CircleIndicate(melee_input_dot,
                                  rate_func=there_and_back_with_pause,
-                                 circle_config={'color': PINK, 'stroke_width': 100}),
+                                 circle_config={'color': PINK, 'stroke_width': line_width}),
                   run_time=3)
         self.wait(3)
 
@@ -443,11 +451,11 @@ class InputScene(MovingCameraScene):
                   Write(unit_melee_display_x),
                   Write(unit_melee_display_y)
                   )
-        animate_xy(x=128+80)
+        animate_xy(x=128 + 80)
         self.wait()
-        animate_xy(x=128+40)
+        animate_xy(x=128 + 40)
         self.wait()
-        animate_xy(y=128-80)
+        animate_xy(y=128 - 80)
         self.wait()
         animate_xy()
         self.wait(2)
@@ -460,34 +468,39 @@ class DeadZoneScene(MovingCameraScene):
     def construct(self):
         text_scaling = 50
         text_buff = 10
+        line_width = 100
         x_colour = RED
         y_colour = PURPLE
         raw_colour = GREY
         melee_colour = YELLOW
-        dz_colour = LIGHT_BROWN
+        dz_colour = GREEN
 
         frame_height = stick_and_di.INPUT_SIZE * 1.5
         self.camera.frame.set(height=frame_height)
         control_stick = ControlStick()
 
         raw_x = 128
-        raw_x_tracker = ValueTracker()
+        raw_x_tracker = ValueTracker(raw_x)
         raw_x_display = Integer(raw_x, color=x_colour).scale(text_scaling)
         raw_x_display.add_updater(lambda m: m.set_value(raw_x_tracker.get_value()))
         raw_x_label = MathTex('x=', color=x_colour).scale(text_scaling).next_to(
             raw_x_display, LEFT, buff=text_buff)
+        x_stuff = VGroup(raw_x_label, raw_x_display)
+        x_stuff.move_to(INFO_LOCATION)
+
         raw_y = 128
-        raw_y_tracker = ValueTracker(raw_y)
-        raw_y_label = MathTex('y=', color=y_colour).scale(text_scaling)
+        raw_y_tracker = ValueTracker(128)
+        raw_y_label = MathTex('y=', color=y_colour).scale(text_scaling).next_to(raw_x_label, DOWN, buff=text_buff)
         raw_y_display = Integer(raw_y, color=y_colour).scale(text_scaling).next_to(raw_y_label, RIGHT, buff=text_buff)
         raw_y_display.add_updater(lambda m: m.set_value(raw_y_tracker.get_value()))
+        y_stuff = VGroup(raw_y_label, raw_y_display)
 
-        def animate_xy(x=128, y=128, random=False):
+        def animate_xy(x=128, y=128, random=False, **kwargs):
             target_x = x if not random else np.random.randint(255)
             target_y = y if not random else np.random.randint(255)
             self.play(
                 raw_x_tracker.animate.set_value(target_x),
-                raw_y_tracker.animate.set_value(target_y))
+                raw_y_tracker.animate.set_value(target_y), **kwargs)
 
         raw_input_dot = Dot(radius=3, color=DARK_GREY, fill_opacity=1)
         raw_input_dot.add_updater(
@@ -496,13 +509,15 @@ class DeadZoneScene(MovingCameraScene):
                 raw_y_tracker.get_value() - 128,
                 0])))
         raw_input_line = Line(start=ORIGIN, end=0.01 * UP + raw_input_dot.get_center(),
-                              color=DARK_GREY, stroke_width=100, stroke_opacity=1)
+                              color=DARK_GREY, stroke_width=line_width, stroke_opacity=1)
         raw_input_line.add_updater(lambda m: m.put_start_and_end_on(ORIGIN, 0.01 * UP + raw_input_dot.get_center()))
 
         raw_label = Tex('Raw Input',
                         color=raw_colour
-                        ).scale(text_scaling)
-        label_gap = 90
+                        ).scale(text_scaling).next_to(raw_x_label, UP, buff=text_buff)
+        raw_label.move_to(raw_label.get_center()[1] * UP + y_stuff.get_center()[0] * RIGHT)
+
+        label_gap = 60
         melee_label = Tex(r'Processed\\Input',
                           color=melee_colour).scale(text_scaling).next_to(raw_label, DOWN, buff=label_gap)
 
@@ -510,52 +525,104 @@ class DeadZoneScene(MovingCameraScene):
             m_x, m_y = stick_and_di.raw_to_melee(raw_x_tracker.get_value(), raw_y_tracker.get_value())
             return np.array([m_x, m_y, 0])
 
-        melee_input_dot = Dot(radius=3, color=melee_colour, fill_opacity=0)
+        melee_input_dot = Dot(radius=3, color=melee_colour, fill_opacity=1)
         melee_input_dot.add_updater(lambda m: m.move_to(get_melee_input()))
 
         melee_label_x = MathTex('x =',
                                 color=x_colour
                                 ).scale(text_scaling
                                         ).next_to(melee_label, DOWN, buff=text_buff).align_to(raw_y_label, LEFT)
-        melee_input_display_x = Integer(color=x_colour, include_sign=True
-                                        ).scale(text_scaling
-                                                ).next_to(melee_label_x, RIGHT, buff=text_buff)
+        melee_input_display_x = DecimalNumber(0, color=x_colour, include_sign=True, num_decimal_places=4
+                                              ).scale(text_scaling
+                                                      ).next_to(melee_label_x, RIGHT, buff=text_buff)
         melee_label_y = MathTex('y =',
                                 color=y_colour).scale(text_scaling).next_to(melee_label_x, DOWN, text_buff)
-        melee_input_display_y = Integer(color=y_colour, include_sign=True
-                                        ).scale(text_scaling).next_to(melee_label_y, RIGHT, buff=text_buff)
-        melee_input_display_x.add_updater(lambda m: m.set_value(melee_input_dot.get_center()[0]/80))
-        melee_input_display_y.add_updater(lambda m: m.set_value(melee_input_dot.get_center()[1])/80)
+        melee_input_display_y = DecimalNumber(0, color=y_colour, include_sign=True, num_decimal_places=4
+                                              ).scale(text_scaling).next_to(melee_label_y, RIGHT, buff=text_buff)
+        melee_input_display_x.add_updater(lambda m: m.set_value(melee_input_dot.get_center()[0] / 80))
+        melee_input_display_y.add_updater(lambda m: m.set_value(melee_input_dot.get_center()[1] / 80))
 
         def get_dead_zone_input():
             m_input = melee_input_dot.get_center()
             m_x, m_y = m_input[0], m_input[1]
             dz_x, dz_y = stick_and_di.apply_dead_zone(m_x, m_y)
             return np.array([dz_x, dz_y, 0])
-        dz_input_dot = Dot(radius=3, colour=dz_colour)
+
+        dz_input_dot = Dot(radius=3, color=dz_colour, fill_opacity=1)
         dz_input_dot.add_updater(lambda m: m.move_to(get_dead_zone_input()))
 
-        dz_label = Tex(r'with Dead Zone', color=dz_colour).scale(text_scaling)
+        dz_label = Tex(r'with\\Dead Zone',
+                       color=dz_colour).scale(text_scaling).next_to(melee_label, DOWN, buff=label_gap)
 
-        dz_label_x = MathTex(r'x=', color=x_colour).scale(text_scaling)
-        dz_display_x = DecimalNumber(0, num_decimal_places=4, include_sign=True, color=x_colour).scale(text_scaling)
-        dz_display_x.add_updater(lambda m: m.set_value(dz_input_dot.get_center()[0]/80))
+        dz_label_x = MathTex(r'x=',
+                             color=x_colour
+                             ).scale(text_scaling).next_to(dz_label, DOWN, buff=text_buff).align_to(raw_y_label, LEFT)
+        dz_display_x = DecimalNumber(0, num_decimal_places=4,
+                                     include_sign=True, color=x_colour
+                                     ).scale(text_scaling).next_to(dz_label_x, RIGHT, buff=text_buff)
+        dz_display_x.add_updater(lambda m: m.set_value(dz_input_dot.get_center()[0] / 80))
 
-        dz_label_y = MathTex(r'y=', color=y_colour).scale(text_scaling)
-        dz_display_y = DecimalNumber(0, num_decimal_places=4, include_sign=True, color=y_colour).scale(text_scaling)
+        dz_label_y = MathTex(r'y=', color=y_colour).scale(text_scaling).next_to(dz_label_x, DOWN, buff=text_buff)
+        dz_display_y = DecimalNumber(0, num_decimal_places=4,
+                                     include_sign=True, color=y_colour
+                                     ).scale(text_scaling).next_to(dz_label_y, RIGHT, buff=text_buff)
         dz_display_y.add_updater(lambda m: m.set_value(dz_input_dot.get_center()[1] / 80))
 
+        dz_text = VGroup(dz_label, dz_label_x, dz_display_x, dz_label_y, dz_display_y)
+
+        control_stick.square.set_fill(LIGHT_GREY)
         self.add(control_stick.square, control_stick.circle, control_stick.nice_gate)
-        self.add(raw_input_line, raw_input_dot, melee_input_dot, dz_input_dot)
+        self.add(raw_input_line, raw_input_dot, melee_input_dot)
+        self.add(raw_label, raw_x_label, raw_x_display, raw_y_label, raw_y_display)
+        self.add(melee_label, melee_label_x, melee_input_display_x,
+                 melee_label_y, melee_input_display_y)
+        self.wait()
+        self.play(FadeIn(control_stick.dead_zone_lines))
+        self.wait()
+        self.play(FadeOut(control_stick.dead_zone_lines),
+                  FadeIn(control_stick.dead_zone_x), FadeIn(control_stick.dead_zone_y),
+                  ShowCreation(dz_input_dot))
+        self.bring_to_front(raw_input_line, raw_input_dot, melee_input_dot, dz_input_dot)
+        self.wait()
+        self.play(Write(dz_text))
+        self.wait()
+        animate_xy(145, 128)
+        self.wait()
+        animate_xy(145, 200, run_time=4, rate_func=linear)
+        self.wait(2)
+        animate_xy(154, 240)
+        self.wait()
+        self.play(FadeIn(control_stick.dead_zone_lines))
+
+        arrow_colour = GREY
+        flare_explain_arrow1 = Arrow(start=raw_input_dot.get_center(),
+                                     end=melee_input_dot.get_center(),
+                                     stroke_width=line_width, stroke_color=arrow_colour)
+        flare_explain_arrow2 = Arrow(start=melee_input_dot.get_center(),
+                                     end=dz_input_dot.get_center(),
+                                     stroke_width=line_width, stroke_color=arrow_colour)
+        self.play(ShowCreation(flare_explain_arrow1))
+        self.play(ShowCreation(flare_explain_arrow2))
+        self.play(Transform(control_stick.dead_zone_x, control_stick.flared_dz_x),
+                  Transform(control_stick.dead_zone_y, control_stick.flared_dz_y))
+        self.bring_to_front(raw_input_line, raw_input_dot, melee_input_dot, dz_input_dot)
+        self.play(Uncreate(flare_explain_arrow1), Uncreate(flare_explain_arrow2))
+        self.wait()
 
 
 class Testing(Scene):
     def construct(self):
-        bg = Rectangle(color=GREY)
-        blocky_circle_data = np.uint8(stick_and_di.possible_inputs() * 255)
-        blocky_circle = ImageMobject(blocky_circle_data)
-        print(blocky_circle.height)
-        self.add(bg)
-        self.add(blocky_circle)
-        self.add(SurroundingRectangle(blocky_circle))
-        self.wait(3)
+        a = [0, 0, 0]
+        b = [2, 0, 0]
+        c = [0, 2, 0]
+        op = 0.5
+        ap1 = ArcPolygon(a, b, c, radius=2, fill_opacity=0.5)
+        ap2 = ArcPolygon(a, b, c, angle=45 * DEGREES, fill_opacity=0.5)
+        ap3 = ArcPolygon(a, b, c, fill_opacity=0.5, arc_config={'radius': 1.7, 'color': RED})
+        ap4 = ArcPolygon(a, b, c, fill_opacity=0.5, color=RED,
+                         arc_config=[{'radius': 1.7, 'color': RED},
+                                     {'angle': 20 * DEGREES, 'color': BLUE},
+                                     {'radius': 1}])
+        ap_group = VGroup(ap1, ap2, ap3, ap4).arrange()
+        self.play(*[ShowCreation(ap) for ap in [ap1, ap2, ap3, ap4]])
+        self.wait()
