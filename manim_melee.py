@@ -128,7 +128,6 @@ class ControlStick(VGroup):
 
         self.square = Square(square_edge, stroke_opacity=0, color=WHITE, fill_opacity=1)
         self.circle = Circle(radius=circle_radius, color=WHITE, fill_opacity=1, stroke_opacity=0)
-        blocky_circle_data = stick_and_di.possible_inputs()
         data_color = stick_and_di.possible_inputs_colour()
         self.blocky_circle = ImageMobject(data_color, height=square_edge)
         self.gcc = SVGMobject(
@@ -220,7 +219,6 @@ class InputScene(MovingCameraScene):
         MovingCameraScene.__init__(self, **kwargs)
 
     def construct(self):
-        print(np.rad2deg(TAU * (0.25 + 1 * (0.25 - (128 / 510)))))
         text_scaling = 50
         text_buff = 10
         x_colour = RED
@@ -272,7 +270,7 @@ class InputScene(MovingCameraScene):
         rotate_about = DOWN * 100
         s_stick_radius = mag(sideways_stick.get_center_of_mass() - rotate_about)
 
-        angle_squeeze = 1  # np.deg2rad(180) / PI
+        angle_squeeze = 66/180
 
         def get_stick_angle_change():
             target_angle = TAU * (0.25 + angle_squeeze * (0.25 - (raw_x_tracker.get_value() / 510)))
@@ -305,7 +303,7 @@ class InputScene(MovingCameraScene):
 
         self.play(Write(bin_x_display), Write(raw_x_display))
 
-        tilt = 60
+        tilt = 100
         self.play(raw_x_tracker.animate.set_value(128 + tilt), rate_func=there_and_back, run_time=2)
         self.play(raw_x_tracker.animate.set_value(128 - tilt), rate_func=there_and_back, run_time=2)
         self.play(Uncreate(sideways_stick))
@@ -364,6 +362,8 @@ class InputScene(MovingCameraScene):
         self.remove(control_stick.blocky_circle)
         self.bring_to_front(raw_input_dot)
         self.wait()
+        self.play(Transform(control_stick.gate, control_stick.nice_gate))
+        self.wait()
         raw_label = Tex('Raw Input',
                         color=raw_colour
                         ).scale(text_scaling).next_to(bin_x_display, UP, buff=text_buff)
@@ -397,10 +397,10 @@ class InputScene(MovingCameraScene):
                                melee_label_x, melee_input_display_x,
                                melee_label_y, melee_input_display_y,
                                melee_input_dot)))
-        animate_xy(54, 209)
-        animate_xy()
+        animate_xy(164, 99)
         self.wait()
-        self.play(Transform(control_stick.gate, control_stick.nice_gate))
+        animate_xy()
+
         self.wait(2)
         raw_input_line = Line(start=ORIGIN, end=raw_input_dot.get_center(),
                               color=DARK_GREY, stroke_width=100, stroke_opacity=1)
@@ -443,10 +443,110 @@ class InputScene(MovingCameraScene):
                   Write(unit_melee_display_x),
                   Write(unit_melee_display_y)
                   )
-        animate_xy(random=True)
-        animate_xy(random=True)
+        animate_xy(x=128+80)
+        self.wait()
+        animate_xy(x=128+40)
+        self.wait()
+        animate_xy(y=128-80)
+        self.wait()
         animate_xy()
         self.wait(2)
+
+
+class DeadZoneScene(MovingCameraScene):
+    def __init__(self, **kwargs):
+        MovingCameraScene.__init__(self, **kwargs)
+
+    def construct(self):
+        text_scaling = 50
+        text_buff = 10
+        x_colour = RED
+        y_colour = PURPLE
+        raw_colour = GREY
+        melee_colour = YELLOW
+        dz_colour = LIGHT_BROWN
+
+        frame_height = stick_and_di.INPUT_SIZE * 1.5
+        self.camera.frame.set(height=frame_height)
+        control_stick = ControlStick()
+
+        raw_x = 128
+        raw_x_tracker = ValueTracker()
+        raw_x_display = Integer(raw_x, color=x_colour).scale(text_scaling)
+        raw_x_display.add_updater(lambda m: m.set_value(raw_x_tracker.get_value()))
+        raw_x_label = MathTex('x=', color=x_colour).scale(text_scaling).next_to(
+            raw_x_display, LEFT, buff=text_buff)
+        raw_y = 128
+        raw_y_tracker = ValueTracker(raw_y)
+        raw_y_label = MathTex('y=', color=y_colour).scale(text_scaling)
+        raw_y_display = Integer(raw_y, color=y_colour).scale(text_scaling).next_to(raw_y_label, RIGHT, buff=text_buff)
+        raw_y_display.add_updater(lambda m: m.set_value(raw_y_tracker.get_value()))
+
+        def animate_xy(x=128, y=128, random=False):
+            target_x = x if not random else np.random.randint(255)
+            target_y = y if not random else np.random.randint(255)
+            self.play(
+                raw_x_tracker.animate.set_value(target_x),
+                raw_y_tracker.animate.set_value(target_y))
+
+        raw_input_dot = Dot(radius=3, color=DARK_GREY, fill_opacity=1)
+        raw_input_dot.add_updater(
+            lambda m: m.move_to(np.array([
+                raw_x_tracker.get_value() - 128,
+                raw_y_tracker.get_value() - 128,
+                0])))
+        raw_input_line = Line(start=ORIGIN, end=0.01 * UP + raw_input_dot.get_center(),
+                              color=DARK_GREY, stroke_width=100, stroke_opacity=1)
+        raw_input_line.add_updater(lambda m: m.put_start_and_end_on(ORIGIN, 0.01 * UP + raw_input_dot.get_center()))
+
+        raw_label = Tex('Raw Input',
+                        color=raw_colour
+                        ).scale(text_scaling)
+        label_gap = 90
+        melee_label = Tex(r'Processed\\Input',
+                          color=melee_colour).scale(text_scaling).next_to(raw_label, DOWN, buff=label_gap)
+
+        def get_melee_input():
+            m_x, m_y = stick_and_di.raw_to_melee(raw_x_tracker.get_value(), raw_y_tracker.get_value())
+            return np.array([m_x, m_y, 0])
+
+        melee_input_dot = Dot(radius=3, color=melee_colour, fill_opacity=0)
+        melee_input_dot.add_updater(lambda m: m.move_to(get_melee_input()))
+
+        melee_label_x = MathTex('x =',
+                                color=x_colour
+                                ).scale(text_scaling
+                                        ).next_to(melee_label, DOWN, buff=text_buff).align_to(raw_y_label, LEFT)
+        melee_input_display_x = Integer(color=x_colour, include_sign=True
+                                        ).scale(text_scaling
+                                                ).next_to(melee_label_x, RIGHT, buff=text_buff)
+        melee_label_y = MathTex('y =',
+                                color=y_colour).scale(text_scaling).next_to(melee_label_x, DOWN, text_buff)
+        melee_input_display_y = Integer(color=y_colour, include_sign=True
+                                        ).scale(text_scaling).next_to(melee_label_y, RIGHT, buff=text_buff)
+        melee_input_display_x.add_updater(lambda m: m.set_value(melee_input_dot.get_center()[0]/80))
+        melee_input_display_y.add_updater(lambda m: m.set_value(melee_input_dot.get_center()[1])/80)
+
+        def get_dead_zone_input():
+            m_input = melee_input_dot.get_center()
+            m_x, m_y = m_input[0], m_input[1]
+            dz_x, dz_y = stick_and_di.apply_dead_zone(m_x, m_y)
+            return np.array([dz_x, dz_y, 0])
+        dz_input_dot = Dot(radius=3, colour=dz_colour)
+        dz_input_dot.add_updater(lambda m: m.move_to(get_dead_zone_input()))
+
+        dz_label = Tex(r'with Dead Zone', color=dz_colour).scale(text_scaling)
+
+        dz_label_x = MathTex(r'x=', color=x_colour).scale(text_scaling)
+        dz_display_x = DecimalNumber(0, num_decimal_places=4, include_sign=True, color=x_colour).scale(text_scaling)
+        dz_display_x.add_updater(lambda m: m.set_value(dz_input_dot.get_center()[0]/80))
+
+        dz_label_y = MathTex(r'y=', color=y_colour).scale(text_scaling)
+        dz_display_y = DecimalNumber(0, num_decimal_places=4, include_sign=True, color=y_colour).scale(text_scaling)
+        dz_display_y.add_updater(lambda m: m.set_value(dz_input_dot.get_center()[1] / 80))
+
+        self.add(control_stick.square, control_stick.circle, control_stick.nice_gate)
+        self.add(raw_input_line, raw_input_dot, melee_input_dot, dz_input_dot)
 
 
 class Testing(Scene):
