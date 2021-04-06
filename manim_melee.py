@@ -129,11 +129,7 @@ class ControlStick(VGroup):
         self.square = Square(square_edge, stroke_opacity=0, color=WHITE, fill_opacity=1)
         self.circle = Circle(radius=circle_radius, color=WHITE, fill_opacity=1, stroke_opacity=0)
         blocky_circle_data = stick_and_di.possible_inputs()
-        data_color = np.ones((square_edge, square_edge, 4))
-        for i in range(square_edge):
-            for j in range(square_edge):
-                data_color[i, j, 3] = blocky_circle_data[i, j]
-        data_color = np.uint8(data_color * 255)
+        data_color = stick_and_di.possible_inputs_colour()
         self.blocky_circle = ImageMobject(data_color, height=square_edge)
         self.gcc = SVGMobject(
             r'C:\Users\charl\Documents\Python_Projects\manim\GCController_Layout_Modified.svg'

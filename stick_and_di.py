@@ -168,6 +168,15 @@ def possible_inputs():
     return grid
 
 
+def possible_inputs_colour():
+    data = possible_inputs()
+    data_color = np.ones((INPUT_SIZE, INPUT_SIZE, 4))
+    for i in range(INPUT_SIZE):
+        for j in range(INPUT_SIZE):
+            data_color[i, j, 3] = data[i, j]
+    return np.uint8(data_color * 255)
+
+
 def process_raw_input(x, y):
     """Takes in raw inputs x and y and applies both the Melee level processing and the dead zones.
     Returns a tuple containing the integer coordinates in the integer Melee representation after dead zones are applied
@@ -193,22 +202,22 @@ def get_kb_line_points(kb_angle):
     return xs, ys
 
 
-def plot_possible_inputs():
+def plot_possible_inputs(colour=False, save=False, filename='possible_inputs.png'):
     """Plots the possible stick inputs before dead zones within Melee on the 256 by 256 raw input grid.
     Accepted values are in white, while non-accepted values are in black. Black values would be shortened down to
     a white value in-game.
     """
-    data = possible_inputs()
-    data_color = np.ones((INPUT_SIZE, INPUT_SIZE, 4))
-    for i in range(INPUT_SIZE):
-        for j in range(INPUT_SIZE):
-            data_color[i, j, 3] = data[i, j]
+    if colour:
+        data = possible_inputs_colour()
+    else:
+        data = possible_inputs()
     print(np.count_nonzero(data))
     fig_size = 10
     plt.figure(figsize=[fig_size, fig_size])
-    plt.imshow(data_color, interpolation='none')
+    plt.imshow(data, cmap='binary', interpolation='none')
     plt.axis('off')
-    plt.savefig('possible_inputs_white.svg', transparent=True)
+    if save:
+        plt.savefig('possible_inputs_white.svg', transparent=True)
     plt.show()
 
 
@@ -303,8 +312,9 @@ def main():
     #  plot_heat_map(45)
     #  plt.show()
     # heatmap_animation()
-    plot_possible_inputs()
+    #  plot_possible_inputs()
     # angle_count_stuff()
+    pass
 
 
 if __name__ == '__main__':
