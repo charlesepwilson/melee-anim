@@ -199,8 +199,16 @@ def plot_possible_inputs():
     a white value in-game.
     """
     data = possible_inputs()
+    data_color = np.ones((INPUT_SIZE, INPUT_SIZE, 4))
+    for i in range(INPUT_SIZE):
+        for j in range(INPUT_SIZE):
+            data_color[i, j, 3] = data[i, j]
     print(np.count_nonzero(data))
-    plt.imshow(data, cmap='gray', interpolation=None)
+    fig_size = 10
+    plt.figure(figsize=[fig_size, fig_size])
+    plt.imshow(data_color, interpolation='none')
+    plt.axis('off')
+    plt.savefig('possible_inputs_white.svg', transparent=True)
     plt.show()
 
 
@@ -292,10 +300,10 @@ def angle_count_stuff():
 
 
 def main():
-    plot_heat_map(45)
-    plt.show()
+    #  plot_heat_map(45)
+    #  plt.show()
     # heatmap_animation()
-    # plot_possible_inputs()
+    plot_possible_inputs()
     # angle_count_stuff()
 
 

@@ -364,7 +364,7 @@ class InputScene(MovingCameraScene):
         # TODO Add blocky circle, fix wobbly numbers
         raw_label = Tex('Raw Input',
                         color=raw_colour
-                        ).scale(text_scaling).next_to(bin_x_display, UP,buff=text_buff)
+                        ).scale(text_scaling).next_to(bin_x_display, UP, buff=text_buff)
         raw_label.move_to(raw_label.get_center()[1] * UP + y_stuff.get_center()[0] * RIGHT)
         label_gap = 90
         melee_label = Tex(r'Processed\\Input',
