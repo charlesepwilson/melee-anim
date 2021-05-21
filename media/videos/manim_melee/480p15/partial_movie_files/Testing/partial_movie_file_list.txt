@@ -1,3 +1,0 @@
-# This file is used internally by FFMPEG.
-file 'file:C:/Users/charl/PycharmProjects/stickInput.py/media/videos/manim_melee/480p15/partial_movie_files/Testing/3163782288_4180579860_701453922.mp4'
-file 'file:C:/Users/charl/PycharmProjects/stickInput.py/media/videos/manim_melee/480p15/partial_movie_files/Testing/1495979052_4180579860_165310198.mp4'
